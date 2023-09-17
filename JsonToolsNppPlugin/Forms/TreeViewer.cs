@@ -233,6 +233,11 @@ namespace JSON_Tools.Forms
             // TODO: maybe add some way to highlight unclosed braces?
         }
 
+        public void SetQueryBoxText(string text)
+        {
+            QueryBox.Text = text;
+        }
+
         public static void SetImageOfTreeNode(TreeNode root, JNode json, bool isDarkMode)
         {
             int imageIndex = isDarkMode ? 8 : 0;
