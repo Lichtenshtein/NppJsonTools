@@ -38,8 +38,7 @@ jobs:
     - name: Prepare Artifacts
       shell: pwsh
       run: |
-        # Логика путей вашего проекта
-        $dllPath = if ("${{ matrix.build_platform }}" -eq "x64") {
+        $dllSrc = if ("${{ matrix.build_platform }}" -eq "x64") {
             "JsonToolsNppPlugin\bin\${{ matrix.build_configuration }}-x64\JsonTools.dll"
         } else {
             "JsonToolsNppPlugin\bin\${{ matrix.build_configuration }}\JsonTools.dll"
@@ -48,14 +47,19 @@ jobs:
         $tagName = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}" } else { "latest-build" }
         $archiveName = "JsonTools_$($tagName)_${{ matrix.build_platform }}.7z"
 
-        if (Test-Path $dllPath) {
-            7z a -t7z -mx9 $archiveName $dllPath
-            echo "ARCHIVE_NAME=$archiveName" >> $env:GITHUB_ENV
-            echo "RELEASE_TAG=$tagName" >> $env:GITHUB_ENV
-        } else {
-            Write-Error "DLL not found at $dllPath"
-            exit 1
-        }
+        $staging = "staging"
+        New-Item -ItemType Directory -Path $staging -Force | Out-Null
+        
+        Copy-Item $dllSrc -Destination "$staging\JsonTools.dll"
+        
+        if (Test-Path "translation") { Copy-Item "translation" -Destination $staging -Recurse }
+        if (Test-Path "testfiles") { Copy-Item "testfiles" -Destination $staging -Recurse }
+        if (Test-Path "DSON UDL.xml") { Copy-Item "DSON UDL.xml" -Destination $staging }
+
+        7z a -t7z -mx9 $archiveName "./$staging/*"
+
+        echo "ARCHIVE_NAME=$archiveName" >> $env:GITHUB_ENV
+        echo "RELEASE_TAG=$tagName" >> $env:GITHUB_ENV
 
     - name: Upload to Workflow
       uses: actions/upload-artifact@v4
@@ -66,6 +70,8 @@ jobs:
 
   publish:
     needs: build
+    # Оставшаяся часть job 'publish' остается без изменений, 
+    # так как она просто берет файлы из артефактов и постит в релиз.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
