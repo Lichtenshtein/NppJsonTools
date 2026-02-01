@@ -848,24 +848,19 @@ namespace JSON_Tools.JSON_Tools
         {
             if (position == pos)
                 return true;
-            else if (position > pos)
+            
+            if (position > pos)
             {
-                // handle the case where the cursor is put on the "key" text
-                // hard code a supplement number 4 because there's for extra character for a key: ", ", :, and a blank char
-                //
                 if (position - keyLength - 4 < pos)
-                {
                     return true;
-                }
             }
+        
             if ((type & Dtype.ARR_OR_OBJ) != 0)
                 return false;
-            //if (extras is ExtraJNodeProperties ext)
-            //    return pos > position && pos <= ext.endPosition;
+        
             string str = ToString();
-            int utf8len = (type == Dtype.STR)
-                ? Encoding.UTF8.GetByteCount(str)
-                : str.Length;
+            int utf8len = Encoding.UTF8.GetByteCount(str);
+            
             return pos > position && pos <= position + utf8len;
         }
 

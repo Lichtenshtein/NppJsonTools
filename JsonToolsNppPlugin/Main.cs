@@ -83,14 +83,24 @@ namespace Kbg.NppPluginNET
         // Create a timer update method
         private static void UpdateTreeViewerPath()
         {
-            if (openTreeViewer != null && !openTreeViewer.IsDisposed)
+            if (openTreeViewer == null || openTreeViewer.IsDisposed) return;
+        
+            string currentPath = Npp.notepad.GetCurrentFilePath();
+            if (jsonFileInfos.TryGetValue(currentPath, out JsonFileInfo info) && info.json != null)
             {
-                string currentPath = Npp.notepad.GetCurrentFilePath();
-                if (jsonFileInfos.ContainsKey(currentPath))
+                int pos = Npp.editor.GetCurrentPos();
+                
+                var pathList = new List<object>();
+                char separator = '.'; 
+                
+                try 
                 {
-                    int pos = Npp.editor.GetCurrentPos();
-                    string result = PathToPosition(settings.key_style, pos);
+                    string result = info.json.PathToPositionHelper(pos, settings.key_style, pathList, separator);
                     openTreeViewer.SetQueryBoxText(!string.IsNullOrEmpty(result) ? "@" + result : "@");
+                }
+                catch 
+                {
+                    openTreeViewer.SetQueryBoxText("@");
                 }
             }
         }
