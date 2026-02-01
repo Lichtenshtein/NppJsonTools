@@ -61,6 +61,7 @@ namespace Kbg.NppPluginNET
         public static bool errorFormTriggeredParse = false;
         // regex search to json stuff
         public static RegexSearchForm regexSearchForm = null;
+        private static System.Windows.Forms.Timer debounceTimer = new System.Windows.Forms.Timer();
         // schema auto-validation stuff
         private static string schemasToFnamePatternsFname = null;
         private static JObject schemasToFnamePatterns = new JObject();
@@ -79,6 +80,20 @@ namespace Kbg.NppPluginNET
         private static bool bufferFinishedOpening = false;
         // Random JSON from schema stuff
         private static bool warnUserOfRSFR_IncompatibleRegexes = true;
+        // Create a timer update method
+        private static void UpdateTreeViewerPath()
+        {
+            if (openTreeViewer != null && !openTreeViewer.IsDisposed)
+            {
+                string currentPath = Npp.notepad.GetCurrentFilePath();
+                if (jsonFileInfos.ContainsKey(currentPath))
+                {
+                    int pos = Npp.editor.GetCurrentPos();
+                    string result = PathToPosition(settings.key_style, pos);
+                    openTreeViewer.SetQueryBoxText(!string.IsNullOrEmpty(result) ? "@" + result : "@");
+                }
+            }
+        }
 
         /// <summary>
         /// this is set from <see cref="Settings.path_separator"/>
@@ -178,6 +193,16 @@ namespace Kbg.NppPluginNET
                 selectionRememberingIndicator2 = indicators[1];
             }
             HideSelectionRememberingIndicators();
+            // To implement a debounce, we'll need a timer. This will prevent the interface from freezing when quickly moving the cursor or selecting text in large JSON files.
+            if (debounceTimer.Interval != 200) // 200 ms is the optimal delay
+            {
+                debounceTimer.Interval = 200;
+                debounceTimer.Tick += (s, e) => 
+                {
+                    debounceTimer.Stop();
+                    UpdateTreeViewerPath();
+                };
+            }
         }
         
         /// <summary>
@@ -405,23 +430,14 @@ namespace Kbg.NppPluginNET
                 //    }
                 //}
 
-            case (uint)SciMsg.SCI_GETCHARAT:
-                if (openTreeViewer != null)
+            case (uint)SciMsg.SCN_UPDATEUI:
+                if ((notification.Updated & (uint)SciMsg.SC_UPDATE_SELECTION) != 0)
                 {
-                    int pos = Npp.editor.GetCurrentPos();
-                    string result = PathToPosition(settings.key_style, pos);
-                    if (result != null && result.Length != 0)
-                    {
-                        Npp.TryCopyToClipboard(result);
-                        openTreeViewer.SetQueryBoxText("@" + result);
-                    }
-                    else
-                    {
-                        openTreeViewer.SetQueryBoxText("@");
-                    }
-
+                    debounceTimer.Stop();
+                    debounceTimer.Start();
                 }
-                return;
+                break;
+
             }
 
         }

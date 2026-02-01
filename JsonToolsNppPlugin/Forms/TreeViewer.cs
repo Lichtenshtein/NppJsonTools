@@ -472,7 +472,6 @@ namespace JSON_Tools.Forms
             string query = QueryBox.Text;
             // 2024.11.04 - kaige: modified the behavior to expanding tree viewer to the target path
             ExpandToThePath(query);
-            return;
             JNode queryFunc;
             // complex queries may mutate the input JSON but return only a subset of the JSON.
             // in this case, we want the tree to be populated by the subset returned by queryFunc.Operate (because the point of the tree is to provide a view into subsets of the input)
